@@ -1,0 +1,17 @@
+{
+  "cli": {
+    "version": ">= 16.0.0",
+    "appVersionSource": "local"
+  },
+  "build": {
+    "preview": {
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://ecommerce-backend-production-1b57.up.railway.app"
+      },
+      "android": {
+        "buildType": "apk"
+      }
+    }
+  }
+}
