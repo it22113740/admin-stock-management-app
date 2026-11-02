@@ -1,5 +1,5 @@
 import { apiRequest, type PaginationMeta } from '@/lib/api';
-import { formatOptions } from '@/inventory/format';
+import { colourLabel, colourOptionName, formatOptions, swatchFor } from '@/inventory/format';
 import type {
   Product,
   StockChangeReason,
@@ -28,6 +28,11 @@ function fallbackMeta(
 }
 
 export function rowsFromProduct(product: Product): StockRow[] {
+  const colourName = colourOptionName(
+    product.variants.map((variant) => variant.options),
+    product.optionTypes,
+  );
+
   if (product.variants.length === 0) {
     return [
       {
@@ -37,6 +42,8 @@ export function rowsFromProduct(product: Product): StockRow[] {
         name: product.name,
         sku: '',
         optionsLabel: '',
+        swatchHex: null,
+        colourLabel: '',
         stock: 0,
         isAvailable: false,
         status: product.status,
@@ -51,7 +58,9 @@ export function rowsFromProduct(product: Product): StockRow[] {
     variantId: variant.id,
     name: product.name,
     sku: variant.sku,
-    optionsLabel: formatOptions(variant.options),
+    optionsLabel: formatOptions(variant.options, colourName),
+    swatchHex: swatchFor(variant.options, variant.swatchHex, colourName, product.optionTypes),
+    colourLabel: colourLabel(variant.options, colourName),
     stock: variant.stock,
     isAvailable: variant.isAvailable,
     status: product.status,

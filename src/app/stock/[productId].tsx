@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { Banner } from '@/components/banner';
 import { Screen } from '@/components/screen';
+import { Swatch } from '@/components/swatch';
 import { Fonts } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import {
@@ -23,16 +24,20 @@ import {
   listStockHistory,
 } from '@/inventory/api';
 import {
+  colourLabel,
+  colourOptionName,
   formatChange,
   formatOptions,
   formatWhen,
   parseWhole,
   reasonLabel,
   stockLevel,
+  swatchFor,
 } from '@/inventory/format';
 import type {
   Notice,
   Product,
+  ProductOptionType,
   StockChangeReason,
   StockHistoryItem,
   Variant,
@@ -70,6 +75,35 @@ function defaultReason(mode: Mode): StockChangeReason {
   return reasonsFor(mode)[0];
 }
 
+function SelectedMeta({
+  variant,
+  colourName,
+  optionTypes,
+  color,
+}: {
+  variant: Variant;
+  colourName: string | null;
+  optionTypes?: readonly ProductOptionType[];
+  color: string;
+}) {
+  const hex = swatchFor(variant.options, variant.swatchHex, colourName, optionTypes);
+  const colour = colourLabel(variant.options, colourName);
+  const text = [hex ? '' : colour, formatOptions(variant.options, colourName), variant.sku]
+    .filter(Boolean)
+    .join(', ');
+
+  if (!hex && !text) {
+    return null;
+  }
+
+  return (
+    <View style={styles.meta}>
+      {hex ? <Swatch hex={hex} label={colour} /> : null}
+      {text ? <Text style={[styles.metaText, { color }]}>{text}</Text> : null}
+    </View>
+  );
+}
+
 export default function StockDetailScreen() {
   const theme = useTheme();
   const params = useLocalSearchParams<{ productId: string; variantId?: string }>();
@@ -93,6 +127,12 @@ export default function StockDetailScreen() {
   const [historyLoading, setHistoryLoading] = useState(false);
   const [reloadToken, setReloadToken] = useState(0);
 
+  const colourName = product
+    ? colourOptionName(
+        product.variants.map((variant) => variant.options),
+        product.optionTypes,
+      )
+    : null;
   const selected = product?.variants.find((item) => item.id === selectedId) ?? null;
   const level = stockLevel(selected?.stock ?? 0, selected?.isAvailable ?? false);
   const levelColor = level === 'out' ? theme.out : level === 'low' ? theme.low : theme.good;
@@ -340,9 +380,12 @@ export default function StockDetailScreen() {
             <>
               <Text style={[styles.name, { color: theme.text }]}>{product.name}</Text>
               {selected ? (
-                <Text style={[styles.sku, { color: theme.textSecondary }]}>
-                  {[formatOptions(selected.options), selected.sku].filter(Boolean).join(', ')}
-                </Text>
+                <SelectedMeta
+                  colourName={colourName}
+                  optionTypes={product.optionTypes}
+                  variant={selected}
+                  color={theme.textSecondary}
+                />
               ) : (
                 <Text style={[styles.sku, { color: theme.textSecondary }]}>
                   This product has no variants to count.
@@ -356,11 +399,32 @@ export default function StockDetailScreen() {
                   contentContainerStyle={styles.chips}>
                   {product.variants.map((variant) => {
                     const active = variant.id === selectedId;
-                    const label = formatOptions(variant.options) || variant.sku;
+                    const colour = colourLabel(variant.options, colourName);
+                    const hex = swatchFor(
+                      variant.options,
+                      variant.swatchHex,
+                      colourName,
+                      product.optionTypes,
+                    );
+                    const text = [
+                      hex ? '' : colour,
+                      formatOptions(variant.options, colourName),
+                    ]
+                      .filter(Boolean)
+                      .join(', ');
+                    const spoken = [
+                      colour,
+                      formatOptions(variant.options, colourName),
+                      variant.sku,
+                      `${variant.stock} on hand`,
+                    ]
+                      .filter(Boolean)
+                      .join(', ');
                     return (
                       <Pressable
                         key={variant.id}
                         accessibilityRole="button"
+                        accessibilityLabel={spoken}
                         accessibilityState={{ selected: active }}
                         onPress={() => chooseVariant(variant)}
                         style={[
@@ -370,9 +434,13 @@ export default function StockDetailScreen() {
                             borderColor: active ? theme.ink : theme.line,
                           },
                         ]}>
-                        <Text style={{ color: active ? theme.onInk : theme.text, fontWeight: '600' }}>
-                          {label}
-                        </Text>
+                        {hex ? <Swatch hex={hex} label={colour} /> : null}
+                        {text ? (
+                          <Text
+                            style={{ color: active ? theme.onInk : theme.text, fontWeight: '600' }}>
+                            {text}
+                          </Text>
+                        ) : null}
                         <Text
                           style={[
                             styles.chipQty,
@@ -606,8 +674,19 @@ const styles = StyleSheet.create({
     lineHeight: 32,
     fontWeight: '700',
   },
+  meta: {
+    marginTop: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   sku: {
     marginTop: 6,
+    fontSize: 15,
+    lineHeight: 20,
+  },
+  metaText: {
+    flexShrink: 1,
     fontSize: 15,
     lineHeight: 20,
   },

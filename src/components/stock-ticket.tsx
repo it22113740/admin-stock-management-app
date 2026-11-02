@@ -1,6 +1,7 @@
 import { Image } from 'expo-image';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { Swatch } from '@/components/swatch';
 import { Fonts } from '@/constants/theme';
 import { rowDetail, stockLevel } from '@/inventory/format';
 import type { StockLevel, StockRow } from '@/inventory/types';
@@ -26,7 +27,9 @@ export function StockTicket({ row, busy, onOpen, onAdd, onRemove }: StockTicketP
       <View style={[styles.bar, { backgroundColor: levelColor }]} />
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={`${row.name}, ${row.stock} on hand`}
+        accessibilityLabel={[row.name, row.colourLabel, `${row.stock} on hand`]
+          .filter(Boolean)
+          .join(', ')}
         onPress={() => onOpen(row)}
         style={({ pressed }) => [styles.main, pressed && styles.pressed]}>
         {row.imageUrl ? (
@@ -44,9 +47,18 @@ export function StockTicket({ row, busy, onOpen, onAdd, onRemove }: StockTicketP
           <Text numberOfLines={1} style={[styles.name, { color: theme.text }]}>
             {row.name}
           </Text>
-          <Text numberOfLines={1} style={[styles.detail, { color: theme.textSecondary }]}>
-            {rowDetail(row)}
-          </Text>
+          {row.swatchHex || rowDetail(row) ? (
+            <View style={styles.detailRow}>
+              {row.swatchHex ? <Swatch hex={row.swatchHex} label={row.colourLabel} /> : null}
+              {rowDetail(row) ? (
+                <Text
+                  numberOfLines={1}
+                  style={[styles.detail, { color: theme.textSecondary }]}>
+                  {rowDetail(row)}
+                </Text>
+              ) : null}
+            </View>
+          ) : null}
           {!row.isAvailable && row.stock > 0 ? (
             <Text style={[styles.hold, { color: theme.out }]}>Not for sale</Text>
           ) : null}
@@ -148,7 +160,13 @@ const styles = StyleSheet.create({
     lineHeight: 21,
     fontWeight: '600',
   },
+  detailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
   detail: {
+    flexShrink: 1,
     fontSize: 13,
     lineHeight: 18,
   },

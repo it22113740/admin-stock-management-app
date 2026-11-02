@@ -25,12 +25,28 @@ export const SET_REASONS: StockChangeReason[] = ['CORRECTION', 'MANUAL_ADJUSTMEN
 
 export type ProductStatus = 'ACTIVE' | 'INACTIVE' | 'ARCHIVED';
 
+export type OptionKind = 'TEXT' | 'COLOR';
+
+export type ProductOptionValue = {
+  id: string;
+  label: string;
+  hex: string | null;
+};
+
+export type ProductOptionType = {
+  id: string;
+  name: string;
+  kind: OptionKind;
+  values: ProductOptionValue[];
+};
+
 export type Variant = {
   id: string;
   sku: string;
   stock: number;
   isAvailable: boolean;
   options: Record<string, string>;
+  swatchHex?: string | null;
   imageUrl: string | null;
 };
 
@@ -39,6 +55,7 @@ export type Product = {
   name: string;
   mainImage: string | null;
   status: ProductStatus;
+  optionTypes?: ProductOptionType[];
   variants: Variant[];
 };
 
@@ -86,6 +103,8 @@ export type StockRow = {
   name: string;
   sku: string;
   optionsLabel: string;
+  swatchHex: string | null;
+  colourLabel: string;
   stock: number;
   isAvailable: boolean;
   status: ProductStatus;
